@@ -1,0 +1,11 @@
+d:\david\documents\visual studio 2015\Projects\SinusoidalArduino\SinusoidalArduino\bin\Debug\SinusoidalArduino.exe.config
+d:\david\documents\visual studio 2015\Projects\SinusoidalArduino\SinusoidalArduino\bin\Debug\SinusoidalArduino.exe
+d:\david\documents\visual studio 2015\Projects\SinusoidalArduino\SinusoidalArduino\bin\Debug\SinusoidalArduino.pdb
+d:\david\documents\visual studio 2015\Projects\SinusoidalArduino\SinusoidalArduino\obj\Debug\SinusoidalArduino.csprojResolveAssemblyReference.cache
+d:\david\documents\visual studio 2015\Projects\SinusoidalArduino\SinusoidalArduino\obj\Debug\SinusoidalArduino.SinusoidalArduino.resources
+d:\david\documents\visual studio 2015\Projects\SinusoidalArduino\SinusoidalArduino\obj\Debug\SinusoidalArduino.Properties.Resources.resources
+d:\david\documents\visual studio 2015\Projects\SinusoidalArduino\SinusoidalArduino\obj\Debug\SinusoidalArduino.csproj.GenerateResource.Cache
+d:\david\documents\visual studio 2015\Projects\SinusoidalArduino\SinusoidalArduino\obj\Debug\SinusoidalArduino.exe
+d:\david\documents\visual studio 2015\Projects\SinusoidalArduino\SinusoidalArduino\obj\Debug\SinusoidalArduino.pdb
+D:\david\Documents\Visual Studio 2015\Projects\SinusoidalArduino\SinusoidalArduino\obj\Debug\Interop.MLApp.dll
+D:\david\Documents\Visual Studio 2015\Projects\SinusoidalArduino\SinusoidalArduino\obj\Debug\SinusoidalArduino.csproj.ResolveComReference.cache
