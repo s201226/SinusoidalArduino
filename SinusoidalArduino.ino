@@ -14,71 +14,105 @@ String inputString="";
 int prescaler_num=1,
   buffer_int[300],
   i=0;
-int inputInt=0;
-long to_count=27;
+long inputInt=0,
+  to_count=27;
 boolean stringComplete=false,
   exception_second_word=false,
   stabilized=false;
 
 void setup() {
-  Serial.begin(115200);
-  Serial.println(START_MESSAGE);
-  Serial.flush();
-
+  //initialization
   for(i=0;i<300;i++){
     buffer_int[i]=0;
     //Serial.println(buffer_int[i]);
   }
-
-  //ADMUX= 0x40;
-  ADMUX = 0xC0; //select internal 1.1V source and channel0
   
-  ADCSRA |= prescaler_num; //prescaler a 128
-  
-  ADCSRA |= 1 << ADEN; //activate ADC
   //enable interrupt
   SREG |= 0X80;
-  ADCSRA |= 1 << ADIF; //reset flag
-  ADCSRA |= 1 << ADIE;
+  
+  //Serial
+  Serial.begin(115200);
+  Serial.println(START_MESSAGE);
+  Serial.flush();
+  
+  //ADC
+  ADMUX = 0xC0; //select internal 1.1V source and channel0
+  ADCSRA = 0x80+prescaler_num; //prescaler a 2
+  ADCSRB = 0;
+  DIDR0 = 0;
 
+  ADCSRA |= 1 << ADIF; //reset interrupt flag
+  ADCSRA |= 1 << ADIE; //enable interrupt
+  
+  //ADCSRA |= 1 << ADSC; //start conversion
+  
+  //Timer
+  TCCR1B = 0x01; //activate timer with clock CLOCK_FREQ
   TCCR1A = 0;
-  TCCR1B = 0x01; //<< CS10; //activate timer with clock CLOCK_FREQ
   TCCR1C = 0;
-  TIFR1 |= 1 << OCF1A;
-  TIMSK1 = 0 << OCIE1A;
+  
+  TCNT1 = 0x00;
+  OCR1A = 0x00;
+  OCR1B = 0x00;
 }
 
 void loop() {
   //Serial.println(TCNT1);
-  //delay(100);
+  
   if(stringComplete){
     if(exception_second_word){ //case there is a second part of the comand
       
-      inputInt=atoi(inputString.c_str());
+      inputInt=atol(inputString.c_str());
       //elaboration of properly time parameters
+      
       prescaler_num=floor(log(CLOCK_FREQ/(14.0*(float)inputInt))/log(2.0));
       
-      if(prescaler_num>7) prescaler_num=7;
+      if(prescaler_num > 7){
+        prescaler_num=7;
+      }
       else{
-        if(prescaler_num<1) prescaler_num=1;
+        if(prescaler_num < 1){
+          prescaler_num=1;
+        }
       }
       
       to_count=(long)(CLOCK_FREQ/(float)inputInt)+1;
-      //setting of the parameters
-      stabilized=false;
-      ADCSRA |= prescaler_num;
+      
+      if(to_count > 65535){
+        to_count=65535;
+      }
+      else{
+        if(to_count < 27){
+          to_count=27;
+        }
+      }
 
-      Serial.println("q");
+      Serial.println("Prescaler changed");
       Serial.println(prescaler_num);
       Serial.println(to_count);
       Serial.println((int)(CLOCK_FREQ/(float)to_count));
-        
-      ADCSRA |= 1 << ADSC; //test convertion
+      Serial.println("***********");
+      
+      
+      //setting of the parameters
+      stabilized=false;
+      
+      ADCSRA = prescaler_num+0x80; //set the new prescaler value
+
+      ADCSRA |= 1 << ADIF; //reset interrupt flag
+      ADCSRA |= 1 << ADIE; //enable interrupt
+
+      OCR1B = TCNT1+to_count;
+      //enable interrupt
+      TIFR1 = 0x04; //reset flag of cmpB
+      TIMSK1 = 0x04; //enable interrupt on cmpB
+
+      ADCSRA |= 1 << ADSC; //start conversion
+      Serial.println(TCNT1);
       delay(10);
       //waiting for the stabilization...
       while(!stabilized);
-      
-      //Serial.println(prescaler_num);
+   
       //exiting part
       exception_second_word=false;
       inputString="";
@@ -86,15 +120,17 @@ void loop() {
     }
     else{
       if(inputString==MEASURE){ //measurement routine
-        i=0;
-        
-        //enable interrupt
-        TIFR1 |= 1 << OCF1A;
-        TIMSK1 |= 1 << OCIE1A;
-        TCNT1 = 0x0000;
 
+        OCR1B = 0x00;
+        TCNT1 = 0x00;
+        OCR1B = TCNT1+to_count;
+        //enable interrupt
+        TIFR1 = 0x04; //reset flag of cmpB
+        TIMSK1 = 0x04; //enable interrupt on cmpB
+        
         ADCSRA |= 1 << ADSC; //start conversion
-        OCR1A = TCNT1+to_count;
+
+        i=0;
       }
       else{
         if(inputString==NEW_FREQUENCY){ //setting new frequency
@@ -123,32 +159,36 @@ void serialEvent(){
   }
 }
 
-ISR(TIMER1_COMPA_vect){
-  i+=1;
+ISR(TIMER1_COMPB_vect){
   if(i<300){
+    i+=1;
+    //Serial.println(TCNT1);
     ADCSRA |= 1 << ADSC; //start conversion
-    OCR1A += to_count;
+    OCR1B += to_count; //increment OCR1B
   }
   else{
-    //TCCR1A &= 0 << CS10; //disactivate timer
-    TIMSK1 &= 0 << OCIE1A;
+    TIMSK1 = 0; //disable compB interrupt
     
     Serial.println(FINISH_MESSAGE);
-    for(i=0;i<300;i++) Serial.println(buffer_int[i]);
+    for(i=0;i<300;i++){
+      Serial.println(buffer_int[i]);
+    }
     Serial.println(FINISH_PKG_MESSAGE);
     Serial.flush();
     
     i=0;
   }
-  TIFR1 |= 1 << OCF1A;
+  TIFR1 |= 1 << OCF1B;
 }
 
 ISR(ADC_vect){
+  ADCSRA |= 1 << ADIF; //reset interrupt flag
   if(exception_second_word){
     stabilized=true;
   }
   else{
     buffer_int[i]=(int)ADC;
   }
+  //Serial.println(TCNT1);
 }/*Botteon Bertone Berto Prono*/
 
